@@ -16,7 +16,10 @@
   margin: 0;
   color: #1f2328;
   background-color: #ffffff;
-  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  /* Без -apple-system/BlinkMacSystemFont: San Francisco в PDF от WebKit даёт
+     битый текстовый слой (строчная «к» копируется как «ĸ» и т.п.). Helvetica
+     Neue визуально идентична и копируется корректно. */
+  font-family: "Helvetica Neue",Helvetica,"Segoe UI","Noto Sans",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
   font-size: 16px;
   line-height: 1.5;
   word-wrap: break-word;

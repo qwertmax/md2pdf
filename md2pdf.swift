@@ -114,11 +114,14 @@ func inlineMD(_ raw: String) -> String {
     s = regexReplace(s, "\\[([^\\]]+)\\]\\(([^)\\s]+)\\)") { g in
         "<a href=\"\(g[2])\">\(g[1])</a>"
     }
-    s = regexReplace(s, "\\*\\*(.+?)\\*\\*") { "<strong>\($0[1])</strong>" }
-    s = regexReplace(s, "__(.+?)__")         { "<strong>\($0[1])</strong>" }
+    // Жирный/курсив/зачёркивание: парные маркеры. Защита (?![\s…])/(?<![\s…])
+    // и (?<!…)/(?!…) не даёт «голому» прогону маркеров (---, ____, ~~~~,
+    // строка-прочерк для подписи) превратиться в кривую разметку.
+    s = regexReplace(s, "(?<!\\*)\\*\\*(?![\\s*])(.+?)(?<![\\s*])\\*\\*(?!\\*)") { "<strong>\($0[1])</strong>" }
+    s = regexReplace(s, "(?<!\\w)__(?![\\s_])(.+?)(?<![\\s_])__(?!\\w)")         { "<strong>\($0[1])</strong>" }
     s = regexReplace(s, "(?<![\\w*])\\*([^*\\n]+)\\*(?![\\w*])") { "<em>\($0[1])</em>" }
     s = regexReplace(s, "(?<![\\w_])_([^_\\n]+)_(?![\\w_])")     { "<em>\($0[1])</em>" }
-    s = regexReplace(s, "~~(.+?)~~") { "<del>\($0[1])</del>" }
+    s = regexReplace(s, "(?<!~)~~(?![\\s~])(.+?)(?<![\\s~])~~(?!~)") { "<del>\($0[1])</del>" }
     for (i, c) in codes.enumerated() {
         s = s.replacingOccurrences(of: "\u{1}\(i)\u{1}", with: "<code>\(c)</code>")
     }
@@ -247,7 +250,7 @@ func markdownToHTML(_ md: String) -> String {
 // MARK: - CSS по умолчанию (переопределяется через --css)
 
 let defaultCSS = """
-body { font-family: -apple-system, 'Helvetica Neue', sans-serif;
+body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
        font-size: 11pt; line-height: 1.55; color: #1a1a1a; }
 h1 { font-size: 22pt; border-bottom: 2px solid #444; padding-bottom: 4pt; }
 h2 { font-size: 16pt; margin-top: 1.4em; }
