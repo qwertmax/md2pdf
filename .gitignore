@@ -1,3 +1,9 @@
+# md2pdf build artifacts
+# md2pdf — скомпилированный бинарник (создаётся build.sh)
+/md2pdf
+# md2pdf.combined.swift — генерируется build.sh (md2pdf.swift + вшитый CSS)
+md2pdf.combined.swift
+
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore

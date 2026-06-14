@@ -1,17 +1,21 @@
 // md2pdf.swift — Markdown → PDF конвертер для macOS без внешних зависимостей.
 // Использует только системные фреймворки (Foundation, AppKit, WebKit).
 //
-// Сборка (один раз, нужны Xcode Command Line Tools):
-//   swiftc -O md2pdf.swift -o md2pdf
+// Сборка (нужны Xcode Command Line Tools):
+//   ./build.sh
+// build.sh вшивает github-style.css в исходник (раздел embeddedGithubCSS) и
+// компилирует, поэтому стили зашиты прямо в бинарник — отдельный .css носить
+// с собой не нужно.
 //
 // Использование:
 //   ./md2pdf input.md                          → input.pdf рядом с исходником
 //   ./md2pdf input.md -o report.pdf
+//   ./md2pdf input.md --theme minimal          → встроенная минимальная тема
 //   ./md2pdf input.md --css style.css          → свои стили (обычный CSS)
 //   ./md2pdf input.md --paper Letter --margin 15
 //
-// Стили полностью конфигурируются через CSS-файл. Если --css не задан,
-// используется встроенная тема по умолчанию.
+// Темы зашиты в бинарник: github (по умолчанию) и minimal. --css перебивает
+// тему и подключает произвольный CSS-файл.
 
 import Foundation
 import AppKit
@@ -23,6 +27,7 @@ struct Options {
     var input: String = ""
     var output: String = ""
     var cssPath: String? = nil
+    var theme: String = "github"  // github | minimal (встроенные темы)
     var paper: String = "A4"      // A4 | Letter
     var marginMM: Double = 20
 }
@@ -38,13 +43,15 @@ func parseArgs() -> Options {
             if !args.isEmpty { o.output = args.removeFirst() }
         case "--css":
             if !args.isEmpty { o.cssPath = args.removeFirst() }
+        case "--theme":
+            if !args.isEmpty { o.theme = args.removeFirst() }
         case "--paper":
             if !args.isEmpty { o.paper = args.removeFirst() }
         case "--margin":
             if !args.isEmpty { o.marginMM = Double(args.removeFirst()) ?? 20 }
         case "-h", "--help":
             print("""
-            md2pdf <input.md> [-o output.pdf] [--css style.css] [--paper A4|Letter] [--margin mm]
+            md2pdf <input.md> [-o output.pdf] [--theme github|minimal] [--css style.css] [--paper A4|Letter] [--margin mm]
             """)
             exit(0)
         default:
@@ -273,13 +280,17 @@ final class Renderer: NSObject, WKNavigationDelegate {
             FileHandle.standardError.write("Не удалось прочитать \(opts.input)\n".data(using: .utf8)!)
             exit(1)
         }
-        var css = defaultCSS
+        let css: String
         if let path = opts.cssPath {
             guard let custom = try? String(contentsOfFile: path, encoding: .utf8) else {
                 FileHandle.standardError.write("Не удалось прочитать CSS \(path)\n".data(using: .utf8)!)
                 exit(1)
             }
             css = custom
+        } else if opts.theme.lowercased() == "minimal" {
+            css = defaultCSS
+        } else {
+            css = embeddedGithubCSS   // тема по умолчанию, вшита в бинарник (см. build.sh)
         }
         let body = markdownToHTML(md)
         let html = """
