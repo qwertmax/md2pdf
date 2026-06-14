@@ -108,6 +108,14 @@ func inlineMD(_ raw: String) -> String {
     s = regexReplace(s, "`([^`]+)`") { g in
         codes.append(g[1]); return "\u{1}\(codes.count - 1)\u{1}"
     }
+    // Бэкслеш-экранирование: \X, где X — ASCII-пунктуация, делает X литеральным
+    // (\_ \* \# и т.п. не превращаются в разметку, и сам \ не вылезает в текст).
+    // Прячем за плейсхолдер \u{2}…\u{2} до конца обработки. Внутри inline-кода
+    // не трогаем — он уже вынут выше. < > & к этому моменту уже сущности.
+    var escapes: [String] = []
+    func stashEscape(_ c: String) -> String { escapes.append(c); return "\u{2}\(escapes.count - 1)\u{2}" }
+    s = regexReplace(s, "\\\\(&lt;|&gt;|&amp;)") { stashEscape($0[1]) }
+    s = regexReplace(s, "\\\\([!\"#$%'()*+,./:;=?@\\[\\]\\\\^_`{|}~-])") { stashEscape($0[1]) }
     s = regexReplace(s, "!\\[([^\\]]*)\\]\\(([^)\\s]+)\\)") { g in
         "<img src=\"\(g[2])\" alt=\"\(g[1])\">"
     }
@@ -124,6 +132,9 @@ func inlineMD(_ raw: String) -> String {
     s = regexReplace(s, "(?<!~)~~(?![\\s~])(.+?)(?<![\\s~])~~(?!~)") { "<del>\($0[1])</del>" }
     for (i, c) in codes.enumerated() {
         s = s.replacingOccurrences(of: "\u{1}\(i)\u{1}", with: "<code>\(c)</code>")
+    }
+    for (i, c) in escapes.enumerated() {
+        s = s.replacingOccurrences(of: "\u{2}\(i)\u{2}", with: c)
     }
     return s
 }
